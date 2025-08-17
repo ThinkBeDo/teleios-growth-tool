@@ -48,7 +48,7 @@ def process_county_files(main_workbook_file, county_files):
 
 def extract_county_data(county_file):
     """
-    Extract data from County Trend sheet, rows 9+, columns B,C,E,G,I
+    Extract data from County Trend sheet, rows 10+ (skipping header at row 9), columns B,C,E,G,I
     """
     try:
         county_wb = load_workbook(county_file, data_only=True)
@@ -67,18 +67,21 @@ def extract_county_data(county_file):
         # Extract county name from filename
         county_name = county_file.filename.replace('.xlsx', '').replace('.xls', '')
         
-        # Extract data from rows 9+ (assuming data starts at row 9)
+        # Extract data from rows 10+ (row 9 is headers, data starts at row 10)
         extracted_data = []
         
-        for row in range(9, trend_sheet.max_row + 1):
+        for row in range(10, trend_sheet.max_row + 1):
             year_cell = trend_sheet[f'B{row}']
             medicare_enrollment_cell = trend_sheet[f'C{row}']
             resident_deaths_cell = trend_sheet[f'E{row}']
             hospice_deaths_cell = trend_sheet[f'G{row}']
             patients_served_cell = trend_sheet[f'I{row}']
             
-            # Check if we have data in this row
-            if year_cell.value and medicare_enrollment_cell.value:
+            # Check if we have valid data in this row (numeric year and medicare enrollment)
+            if (year_cell.value and medicare_enrollment_cell.value and 
+                isinstance(year_cell.value, (int, float)) and 
+                isinstance(medicare_enrollment_cell.value, (int, float))):
+                
                 row_data = {
                     'county': county_name,
                     'state': 'NC',
