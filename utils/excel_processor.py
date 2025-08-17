@@ -49,6 +49,7 @@ def process_county_files(main_workbook_file, county_files):
 def extract_county_data(county_file):
     """
     Extract data from County Trend sheet, rows 10+ (skipping header at row 9), columns B,C,E,G,I
+    Stops at first empty row to extract only the PRIMARY table (first continuous data section)
     """
     try:
         county_wb = load_workbook(county_file, data_only=True)
@@ -77,9 +78,15 @@ def extract_county_data(county_file):
             hospice_deaths_cell = trend_sheet[f'G{row}']
             patients_served_cell = trend_sheet[f'I{row}']
             
-            # Check if we have valid data in this row (numeric year and medicare enrollment)
-            if (year_cell.value and medicare_enrollment_cell.value and 
-                isinstance(year_cell.value, (int, float)) and 
+            # Stop at first empty row (end of PRIMARY table)
+            # Check if year or medicare enrollment is empty/None
+            if (year_cell.value is None or year_cell.value == '' or 
+                medicare_enrollment_cell.value is None or medicare_enrollment_cell.value == ''):
+                # We've reached the end of the first continuous data section
+                break
+            
+            # Check if we have valid numeric data in this row
+            if (isinstance(year_cell.value, (int, float)) and 
                 isinstance(medicare_enrollment_cell.value, (int, float))):
                 
                 row_data = {
