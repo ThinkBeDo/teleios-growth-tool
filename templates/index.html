@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teleios Growth Tool Automation</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏥 Teleios Growth Tool Automation</h1>
+            <p>Automate county demographic data processing for Alex Ledford</p>
+        </header>
+
+        <main>
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                            <div class="alert alert-error">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <div class="upload-section">
+                <h2>📁 Upload Files</h2>
+                <form action="/upload" method="post" enctype="multipart/form-data">
+                    
+                    <div class="file-input-group">
+                        <label for="main_workbook">📊 Main Workbook (Growth Tool Excel file):</label>
+                        <input type="file" id="main_workbook" name="main_workbook" accept=".xlsx,.xls" required>
+                        <small>Select your main Growth Tool Excel workbook</small>
+                    </div>
+
+                    <div class="file-input-group">
+                        <label for="county_files">🏘️ County Files (select multiple):</label>
+                        <input type="file" id="county_files" name="county_files" accept=".xlsx,.xls" multiple required>
+                        <small>Select all county Excel files (Caswell.xlsx, Guilford.xlsx, etc.)</small>
+                    </div>
+
+                    <button type="submit" class="process-btn">🚀 Process Files</button>
+                </form>
+            </div>
+
+            <div class="info-section">
+                <h3>ℹ️ What This Tool Does</h3>
+                <ul>
+                    <li>✅ Extracts data from County Trend sheets (rows 9+)</li>
+                    <li>✅ Maps Medicare Enrollment → Medicare Beneficiaries</li>
+                    <li>✅ Maps Resident Deaths → Medicare Deaths</li>
+                    <li>✅ Maps Hospice Deaths → Hospice Deaths</li>
+                    <li>✅ Maps Patients Served → Hospice Unduplicated Beneficiaries</li>
+                    <li>✅ Adds data to Raw sheet with auto-generated keys</li>
+                    <li>✅ Returns updated workbook for download</li>
+                </ul>
+            </div>
+
+            <div class="process-info">
+                <h3>📋 Processing Steps</h3>
+                <ol>
+                    <li>Upload your main Growth Tool workbook</li>
+                    <li>Select all county Excel files you want to process</li>
+                    <li>Click "Process Files" to start automation</li>
+                    <li>Download the updated workbook with new data</li>
+                </ol>
+                <p><strong>Time Savings:</strong> Reduces 15min-1hr manual process to 2-3 minutes!</p>
+            </div>
+        </main>
+
+        <footer>
+            <p>Built for Teleios | Alex Ledford County Data Automation</p>
+        </footer>
+    </div>
+
+    <script>
+        // Add some basic interactivity
+        document.getElementById('county_files').addEventListener('change', function(e) {
+            const fileCount = e.target.files.length;
+            const label = document.querySelector('label[for="county_files"]');
+            if (fileCount > 0) {
+                label.textContent = `🏘️ County Files (${fileCount} files selected):`;
+            } else {
+                label.textContent = '🏘️ County Files (select multiple):';
+            }
+        });
+
+        document.getElementById('main_workbook').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name;
+            const label = document.querySelector('label[for="main_workbook"]');
+            if (fileName) {
+                label.textContent = `📊 Main Workbook (${fileName}):`;
+            } else {
+                label.textContent = '📊 Main Workbook (Growth Tool Excel file):';
+            }
+        });
+    </script>
+</body>
+</html>
