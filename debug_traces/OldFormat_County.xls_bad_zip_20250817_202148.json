@@ -1,0 +1,16 @@
+{
+  "trace": [
+    {
+      "step": "file_info",
+      "data": {
+        "timestamp": "2025-08-17T20:21:48.683943",
+        "filename": "OldFormat_County.xls",
+        "file_size": 59,
+        "is_zip_file": false,
+        "zip_test": "BadZipFile: File is not a zip file",
+        "file_type": "Old Excel format (XLS)"
+      }
+    }
+  ],
+  "trace_count": 1
+}

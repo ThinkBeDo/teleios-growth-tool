@@ -1,0 +1,16 @@
+{
+  "trace": [
+    {
+      "step": "file_info",
+      "data": {
+        "timestamp": "2025-08-17T20:21:48.683680",
+        "filename": "FakeCounty_NotZip.xlsx",
+        "file_size": 45,
+        "is_zip_file": false,
+        "zip_test": "BadZipFile: File is not a zip file",
+        "file_type": "Unknown format. First bytes: 5468697320697320"
+      }
+    }
+  ],
+  "trace_count": 1
+}
