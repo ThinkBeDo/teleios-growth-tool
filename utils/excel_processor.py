@@ -61,7 +61,12 @@ def extract_county_data(county_file):
         
         # Check if file is a valid Excel file before attempting to load
         if not file_info.get("is_zip_file") and file_info.get("file_type") != "Old Excel format (XLS)":
-            error_msg = f"File {county_file.filename} is not a valid Excel file: {file_info.get('file_type', 'Unknown format')}"
+            # Provide user-friendly error message
+            file_size = file_info.get('file_size', 0)
+            if file_size < 1000:  # Less than 1KB
+                error_msg = f"File {county_file.filename} appears to be corrupted or not a valid Excel file (size: {file_size} bytes). Please re-export from Excel or ensure the file is a proper .xlsx format."
+            else:
+                error_msg = f"File {county_file.filename} is not a valid Excel file: {file_info.get('file_type', 'Unknown format')}"
             print(error_msg)
             debug_logger.logger.error(error_msg)
             return None

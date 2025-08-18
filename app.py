@@ -72,7 +72,7 @@ def upload_files():
                 mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
         else:
-            flash('Error processing files. Please check your data and try again.')
+            flash('Error processing files. Some county files may be corrupted or not in proper Excel format. Please ensure all files are valid .xlsx files exported from Excel.')
             return redirect(url_for('index'))
             
     except Exception as e:
