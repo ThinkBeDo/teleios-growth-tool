@@ -37,6 +37,11 @@ def process_county_files(main_workbook_file, county_files):
                 # Add data to Raw sheet
                 next_row = add_county_data_to_raw(raw_sheet, county_data, next_row)
         
+        # CRITICAL FIX: Rebuild Counties sheet from Raw data
+        # This ensures all counties (including newly added ones) appear in Counties sheet
+        if 'Counties' in main_wb.sheetnames:
+            rebuild_counties_sheet_from_raw(main_wb)
+        
         # Save to memory buffer
         output_buffer = io.BytesIO()
         main_wb.save(output_buffer)
@@ -47,6 +52,76 @@ def process_county_files(main_workbook_file, county_files):
     except Exception as e:
         print(f"Error processing files: {e}")
         return None
+
+def rebuild_counties_sheet_from_raw(workbook):
+    """
+    Rebuild the Counties sheet from Raw sheet data to include all counties.
+    This fixes the issue where new counties don't appear in the Counties sheet.
+    """
+    try:
+        raw_sheet = workbook['Raw']
+        counties_sheet = workbook['Counties']
+        
+        # Get all unique counties from Raw sheet
+        counties_data = []
+        row = 2  # Start from row 2 (skip header)
+        
+        while raw_sheet[f'A{row}'].value is not None:
+            county = raw_sheet[f'A{row}'].value
+            state = raw_sheet[f'B{row}'].value
+            year = raw_sheet[f'C{row}'].value
+            
+            if county and state and year:
+                counties_data.append({
+                    'county': county,
+                    'state': state, 
+                    'year': year,
+                    'raw_row': row
+                })
+            row += 1
+        
+        # Clear existing Counties sheet data (keep headers)
+        max_row = counties_sheet.max_row
+        if max_row > 1:
+            counties_sheet.delete_rows(2, max_row - 1)
+        
+        # Rebuild Counties sheet with all counties from Raw
+        current_counties_row = 2
+        
+        for data in counties_data:
+            # Map data from Raw sheet to Counties sheet structure
+            counties_sheet[f'A{current_counties_row}'] = data['year']  # Year
+            counties_sheet[f'B{current_counties_row}'] = data['year']  # Year (duplicate)
+            counties_sheet[f'C{current_counties_row}'] = data['state']  # State
+            counties_sheet[f'D{current_counties_row}'] = data['county']  # County
+            
+            # Key field - create CONCAT formula
+            counties_sheet[f'E{current_counties_row}'] = f'=CONCAT(D{current_counties_row},B{current_counties_row})'
+            
+            # Copy data from Raw sheet using VLOOKUP-style references
+            raw_key = f'=CONCAT(A{data["raw_row"]},"-",B{data["raw_row"]},"-",C{data["raw_row"]})'
+            
+            # Map the data fields from Raw sheet
+            # Medicare Beneficiaries (Raw column E)
+            counties_sheet[f'H{current_counties_row}'] = f'=Raw!E{data["raw_row"]}'
+            
+            # Medicare Deaths (Raw column G) 
+            counties_sheet[f'I{current_counties_row}'] = f'=Raw!G{data["raw_row"]}'
+            
+            # Hospice Unduplicated Beneficiaries (Raw column K)
+            counties_sheet[f'J{current_counties_row}'] = f'=Raw!K{data["raw_row"]}'
+            
+            # Hospice Deaths (Raw column I)
+            counties_sheet[f'K{current_counties_row}'] = f'=Raw!I{data["raw_row"]}'
+            
+            current_counties_row += 1
+        
+        print(f"Successfully rebuilt Counties sheet with {len(counties_data)} rows from Raw sheet")
+        
+    except Exception as e:
+        print(f"Error rebuilding Counties sheet: {e}")
+        # Don't fail the entire process if Counties rebuild fails
+        pass
 
 def extract_county_data(county_file):
     """
