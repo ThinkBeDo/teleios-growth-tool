@@ -246,6 +246,17 @@ def extract_county_data(county_file):
             if (isinstance(year_cell.value, (int, float)) and 
                 isinstance(medicare_enrollment_cell.value, (int, float))):
                 
+                # Convert percentages to decimals where needed
+                hospice_penetration_value = hospice_penetration_cell.value if hospice_penetration_cell.value else 0
+                # If value is > 1, it's likely a percentage that needs to be divided by 100
+                if hospice_penetration_value > 1:
+                    hospice_penetration_value = hospice_penetration_value / 100
+                
+                gip_days_percent_value = gip_days_percent_cell.value if gip_days_percent_cell.value else 0
+                # If value is > 1, it's likely a percentage that needs to be divided by 100
+                if gip_days_percent_value > 1:
+                    gip_days_percent_value = gip_days_percent_value / 100
+                
                 row_data = {
                     'county': county_name,
                     'state': 'NC',
@@ -253,15 +264,15 @@ def extract_county_data(county_file):
                     'medicare_enrollment': medicare_enrollment_cell.value,
                     'resident_deaths': resident_deaths_cell.value if resident_deaths_cell.value else 0,
                     'hospice_deaths': hospice_deaths_cell.value if hospice_deaths_cell.value else 0,
-                    'hospice_penetration': hospice_penetration_cell.value if hospice_penetration_cell.value else 0,  # NEW
+                    'hospice_penetration': hospice_penetration_value,  # Converted to decimal
                     'patients_served': patients_served_cell.value if patients_served_cell.value else 0,
-                    'days_per_patient': days_per_patient_cell.value if days_per_patient_cell.value else 0,  # NEW
-                    'patient_days': patient_days_cell.value if patient_days_cell.value else 0,  # NEW
-                    'avg_daily_census': avg_daily_census_cell.value if avg_daily_census_cell.value else 0,  # NEW
-                    'gip_days_percent': gip_days_percent_cell.value if gip_days_percent_cell.value else 0,  # NEW
-                    'avg_gip_census': avg_gip_census_cell.value if avg_gip_census_cell.value else 0,  # NEW
-                    'gip_patients': gip_patients_cell.value if gip_patients_cell.value else 0,  # NEW
-                    'payments_per_patient': payments_per_patient_cell.value if payments_per_patient_cell.value else 0  # NEW
+                    'days_per_patient': days_per_patient_cell.value if days_per_patient_cell.value else 0,
+                    'patient_days': patient_days_cell.value if patient_days_cell.value else 0,
+                    'avg_daily_census': avg_daily_census_cell.value if avg_daily_census_cell.value else 0,
+                    'gip_days_percent': gip_days_percent_value,  # Converted to decimal
+                    'avg_gip_census': avg_gip_census_cell.value if avg_gip_census_cell.value else 0,
+                    'gip_patients': gip_patients_cell.value if gip_patients_cell.value else 0,
+                    'payments_per_patient': payments_per_patient_cell.value if payments_per_patient_cell.value else 0
                 }
                 extracted_data.append(row_data)
                 debug_logger.log_row_extraction(row, year_cell.value, medicare_enrollment_cell.value,

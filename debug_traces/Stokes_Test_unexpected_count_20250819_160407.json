@@ -1,0 +1,60 @@
+{
+  "trace": [
+    {
+      "step": "file_info",
+      "data": {
+        "timestamp": "2025-08-19T16:04:07.006807",
+        "filename": "Stokes_Test.xlsx",
+        "file_size": 5071,
+        "is_zip_file": true,
+        "zip_test": null,
+        "file_type": null,
+        "zip_contents": [
+          "docProps/app.xml",
+          "docProps/core.xml",
+          "xl/theme/theme1.xml",
+          "xl/worksheets/sheet1.xml",
+          "xl/styles.xml",
+          "_rels/.rels",
+          "xl/workbook.xml",
+          "xl/_rels/workbook.xml.rels",
+          "[Content_Types].xml"
+        ]
+      }
+    },
+    {
+      "step": "sheet_detection",
+      "data": {
+        "timestamp": "2025-08-19T16:04:07.008084",
+        "all_sheets": [
+          "County Trend"
+        ],
+        "county_trend_candidates": [
+          "County Trend"
+        ],
+        "selected_sheet": "County Trend"
+      }
+    },
+    {
+      "step": "row_10",
+      "data": {
+        "row": 10,
+        "year_value": 2010,
+        "medicare_value": 8487,
+        "action": "extract",
+        "reason": "Valid numeric data"
+      }
+    },
+    {
+      "step": "summary",
+      "data": {
+        "timestamp": "2025-08-19T16:04:07.008192",
+        "county": "Stokes_Test",
+        "total_rows_checked": 1,
+        "rows_extracted": 1,
+        "stop_reason": "Reached end of sheet"
+      }
+    }
+  ],
+  "trace_count": 4
+}
