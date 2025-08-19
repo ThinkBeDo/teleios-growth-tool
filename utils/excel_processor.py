@@ -11,11 +11,19 @@ def process_county_files(main_workbook_file, county_files):
     """
     Process county Excel files and update the main workbook's Raw sheet.
     
-    Field Mapping (from analysis):
+    Field Mapping (complete 12 columns):
     - Column C (Medicare Enrollment) → Raw Column E (Medicare Beneficiaries)
     - Column E (Resident Deaths) → Raw Column G (Medicare Deaths)  
-    - Column I (Patients Served) → Raw Column K (Hospice Unduplicated Beneficiaries)
     - Column G (Hospice Deaths) → Raw Column I (Hospice Deaths)
+    - Column H (Hospice Penetration) → Raw Column L (Hospice Penetration)
+    - Column I (Patients Served) → Raw Column K (Hospice Unduplicated Beneficiaries)
+    - Column J (Days per Patient/ALOS) → Raw Column M (Days per Patient)
+    - Column K (Patient Days) → Raw Column N (Patient Days)
+    - Column L (Average Daily Census) → Raw Column O (Average Daily Census)
+    - Column M (% GIP Days) → Raw Column P (% GIP Days)
+    - Column N (Average GIP Census) → Raw Column Q (Average GIP Census)
+    - Column O (GIP Patients) → Raw Column R (GIP Patients)
+    - Column P (Payments per Patient) → Raw Column S (Payments per Patient)
     """
     try:
         # Load main workbook
@@ -100,7 +108,7 @@ def rebuild_counties_sheet_from_raw(workbook):
             key_value = f"{data['county']}{data['year']}"
             counties_sheet[f'E{current_counties_row}'] = key_value
             
-            # Copy data from Raw sheet using direct cell references
+            # Copy data from Raw sheet using direct cell references - all 12 columns
             # Medicare Beneficiaries (Raw column E)
             counties_sheet[f'H{current_counties_row}'] = f'=Raw!E{data["raw_row"]}'
             
@@ -113,6 +121,30 @@ def rebuild_counties_sheet_from_raw(workbook):
             # Hospice Deaths (Raw column I)
             counties_sheet[f'K{current_counties_row}'] = f'=Raw!I{data["raw_row"]}'
             
+            # Hospice Penetration (Raw column L) → Counties column Z
+            counties_sheet[f'Z{current_counties_row}'] = f'=Raw!L{data["raw_row"]}'
+            
+            # Average Daily Census (Raw column O) → Counties column AB
+            counties_sheet[f'AB{current_counties_row}'] = f'=Raw!O{data["raw_row"]}'
+            
+            # Patient Days (Raw column N) → Counties column AC
+            counties_sheet[f'AC{current_counties_row}'] = f'=Raw!N{data["raw_row"]}'
+            
+            # Days per Patient/ALOS (Raw column M) → Counties column AD (new column after AC)
+            counties_sheet[f'AD{current_counties_row}'] = f'=Raw!M{data["raw_row"]}'
+            
+            # % GIP Days (Raw column P) → Counties column AE (new column)
+            counties_sheet[f'AE{current_counties_row}'] = f'=Raw!P{data["raw_row"]}'
+            
+            # Average GIP Census (Raw column Q) → Counties column AF (new column)
+            counties_sheet[f'AF{current_counties_row}'] = f'=Raw!Q{data["raw_row"]}'
+            
+            # GIP Patients (Raw column R) → Counties column AG (new column)
+            counties_sheet[f'AG{current_counties_row}'] = f'=Raw!R{data["raw_row"]}'
+            
+            # Payments per Patient (Raw column S) → Counties column AH (new column)
+            counties_sheet[f'AH{current_counties_row}'] = f'=Raw!S{data["raw_row"]}'
+            
             current_counties_row += 1
         
         print(f"Successfully rebuilt Counties sheet with {len(counties_data)} rows from Raw sheet")
@@ -124,7 +156,8 @@ def rebuild_counties_sheet_from_raw(workbook):
 
 def extract_county_data(county_file):
     """
-    Extract data from County Trend sheet, rows 10+ (skipping header at row 9), columns B,C,E,G,I
+    Extract data from County Trend sheet, rows 10+ (skipping header at row 9)
+    Extracts columns B,C,E,G,H,I,J,K,L,M,N,O,P (12 total columns)
     Stops at first empty row to extract only the PRIMARY table (first continuous data section)
     """
     debug_logger.reset_trace()
@@ -182,11 +215,20 @@ def extract_county_data(county_file):
         for row in range(10, trend_sheet.max_row + 1):
             rows_checked += 1
             
+            # Extract all required columns
             year_cell = trend_sheet[f'B{row}']
             medicare_enrollment_cell = trend_sheet[f'C{row}']
             resident_deaths_cell = trend_sheet[f'E{row}']
             hospice_deaths_cell = trend_sheet[f'G{row}']
+            hospice_penetration_cell = trend_sheet[f'H{row}']  # NEW
             patients_served_cell = trend_sheet[f'I{row}']
+            days_per_patient_cell = trend_sheet[f'J{row}']  # NEW (ALOS)
+            patient_days_cell = trend_sheet[f'K{row}']  # NEW
+            avg_daily_census_cell = trend_sheet[f'L{row}']  # NEW
+            gip_days_percent_cell = trend_sheet[f'M{row}']  # NEW
+            avg_gip_census_cell = trend_sheet[f'N{row}']  # NEW
+            gip_patients_cell = trend_sheet[f'O{row}']  # NEW
+            payments_per_patient_cell = trend_sheet[f'P{row}']  # NEW
             
             # Log the raw values for debugging
             debug_logger.logger.debug(f"Row {row} raw values - Year: {year_cell.value}, Medicare: {medicare_enrollment_cell.value}")
@@ -211,7 +253,15 @@ def extract_county_data(county_file):
                     'medicare_enrollment': medicare_enrollment_cell.value,
                     'resident_deaths': resident_deaths_cell.value if resident_deaths_cell.value else 0,
                     'hospice_deaths': hospice_deaths_cell.value if hospice_deaths_cell.value else 0,
-                    'patients_served': patients_served_cell.value if patients_served_cell.value else 0
+                    'hospice_penetration': hospice_penetration_cell.value if hospice_penetration_cell.value else 0,  # NEW
+                    'patients_served': patients_served_cell.value if patients_served_cell.value else 0,
+                    'days_per_patient': days_per_patient_cell.value if days_per_patient_cell.value else 0,  # NEW
+                    'patient_days': patient_days_cell.value if patient_days_cell.value else 0,  # NEW
+                    'avg_daily_census': avg_daily_census_cell.value if avg_daily_census_cell.value else 0,  # NEW
+                    'gip_days_percent': gip_days_percent_cell.value if gip_days_percent_cell.value else 0,  # NEW
+                    'avg_gip_census': avg_gip_census_cell.value if avg_gip_census_cell.value else 0,  # NEW
+                    'gip_patients': gip_patients_cell.value if gip_patients_cell.value else 0,  # NEW
+                    'payments_per_patient': payments_per_patient_cell.value if payments_per_patient_cell.value else 0  # NEW
                 }
                 extracted_data.append(row_data)
                 debug_logger.log_row_extraction(row, year_cell.value, medicare_enrollment_cell.value,
@@ -259,7 +309,7 @@ def find_next_empty_row(sheet):
 
 def add_county_data_to_raw(raw_sheet, county_data, start_row):
     """
-    Add county data to Raw sheet with proper field mapping
+    Add county data to Raw sheet with proper field mapping (12 columns total)
     
     Field Mapping:
     - Column A: County
@@ -270,6 +320,14 @@ def add_county_data_to_raw(raw_sheet, county_data, start_row):
     - Column G: Medicare Deaths (from Resident Deaths)
     - Column I: Hospice Deaths (from Hospice Deaths)
     - Column K: Hospice Unduplicated Beneficiaries (from Patients Served)
+    - Column L: Hospice Penetration (from Hospice Penetration)
+    - Column M: Days per Patient (from Days per Patient/ALOS)
+    - Column N: Patient Days (from Patient Days)
+    - Column O: Average Daily Census (from Average Daily Census)
+    - Column P: % GIP Days (from % GIP Days)
+    - Column Q: Average GIP Census (from Average GIP Census)
+    - Column R: GIP Patients (from GIP Patients)
+    - Column S: Payments per Patient (from Payments per Patient)
     """
     current_row = start_row
     
@@ -293,11 +351,19 @@ def add_county_data_to_raw(raw_sheet, county_data, start_row):
             # First data row, create CONCAT formula
             raw_sheet[f'D{current_row}'] = f'=CONCAT(A{current_row},"-",B{current_row},"-",C{current_row})'
         
-        # Field mapping based on analysis
+        # Field mapping based on analysis - all 12 columns
         raw_sheet[f'E{current_row}'] = data['medicare_enrollment']  # Medicare Beneficiaries
         raw_sheet[f'G{current_row}'] = data['resident_deaths']      # Medicare Deaths
         raw_sheet[f'I{current_row}'] = data['hospice_deaths']       # Hospice Deaths
         raw_sheet[f'K{current_row}'] = data['patients_served']      # Hospice Unduplicated Beneficiaries
+        raw_sheet[f'L{current_row}'] = data['hospice_penetration']  # Hospice Penetration
+        raw_sheet[f'M{current_row}'] = data['days_per_patient']     # Days per Patient (ALOS)
+        raw_sheet[f'N{current_row}'] = data['patient_days']         # Patient Days
+        raw_sheet[f'O{current_row}'] = data['avg_daily_census']     # Average Daily Census
+        raw_sheet[f'P{current_row}'] = data['gip_days_percent']     # % GIP Days
+        raw_sheet[f'Q{current_row}'] = data['avg_gip_census']       # Average GIP Census
+        raw_sheet[f'R{current_row}'] = data['gip_patients']         # GIP Patients
+        raw_sheet[f'S{current_row}'] = data['payments_per_patient'] # Payments per Patient
         
         current_row += 1
     

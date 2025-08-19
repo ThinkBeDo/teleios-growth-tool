@@ -27,21 +27,37 @@ def create_test_excel_files():
     ws = wb.active
     ws.title = "County Trend"
     
-    # Add headers at row 9
+    # Add headers at row 9 - all 12 columns
     ws['B9'] = 'Year'
     ws['C9'] = 'Medicare Enrollment'
     ws['E9'] = 'Resident Deaths'
     ws['G9'] = 'Hospice Deaths'
+    ws['H9'] = 'Hospice Penetration'
     ws['I9'] = 'Patients Served'
+    ws['J9'] = 'Days per Patient'
+    ws['K9'] = 'Patient Days'
+    ws['L9'] = 'Average Daily Census'
+    ws['M9'] = '% GIP Days'
+    ws['N9'] = 'Average GIP Census'
+    ws['O9'] = 'GIP Patients'
+    ws['P9'] = 'Payments per Patient'
     
-    # Add 15 rows of data starting at row 10
+    # Add 15 rows of data starting at row 10 - all 12 columns
     for i in range(15):
         row = 10 + i
         ws[f'B{row}'] = 2009 + i  # Years 2009-2023
         ws[f'C{row}'] = 10000 + (i * 100)  # Medicare enrollment
         ws[f'E{row}'] = 500 + (i * 10)  # Resident deaths
         ws[f'G{row}'] = 200 + (i * 5)  # Hospice deaths
+        ws[f'H{row}'] = 45.5 + (i * 0.5)  # Hospice Penetration %
         ws[f'I{row}'] = 1000 + (i * 20)  # Patients served
+        ws[f'J{row}'] = 85 + (i * 2)  # Days per Patient (ALOS)
+        ws[f'K{row}'] = 85000 + (i * 1000)  # Patient Days
+        ws[f'L{row}'] = 230 + (i * 3)  # Average Daily Census
+        ws[f'M{row}'] = 2.5 + (i * 0.1)  # % GIP Days
+        ws[f'N{row}'] = 5.8 + (i * 0.2)  # Average GIP Census
+        ws[f'O{row}'] = 50 + (i * 2)  # GIP Patients
+        ws[f'P{row}'] = 12500 + (i * 500)  # Payments per Patient
     
     wb.save('test_files/Proper_County.xlsx')
     test_files.append('test_files/Proper_County.xlsx')
@@ -150,6 +166,24 @@ def test_file_extraction(filepath):
                 if len(extracted_data) > 0:
                     print(f"   - First row year: {extracted_data[0]['year']}")
                     print(f"   - Last row year: {extracted_data[-1]['year']}")
+                    
+                    # Check all 12 columns are present
+                    expected_fields = ['county', 'state', 'year', 'medicare_enrollment', 
+                                     'resident_deaths', 'hospice_deaths', 'hospice_penetration',
+                                     'patients_served', 'days_per_patient', 'patient_days',
+                                     'avg_daily_census', 'gip_days_percent', 'avg_gip_census',
+                                     'gip_patients', 'payments_per_patient']
+                    
+                    first_row = extracted_data[0]
+                    missing_fields = [f for f in expected_fields if f not in first_row]
+                    
+                    if missing_fields:
+                        print(f"   ✗ Missing fields: {missing_fields}")
+                    else:
+                        print(f"   ✓ All 12 data columns present!")
+                        # Show sample values from first row
+                        print(f"   - Sample hospice penetration: {first_row.get('hospice_penetration', 'N/A')}")
+                        print(f"   - Sample patient days: {first_row.get('patient_days', 'N/A')}")
             else:
                 print(f"   ✗ Extraction failed!")
                 
