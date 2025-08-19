@@ -261,18 +261,22 @@ def extract_county_data(county_file):
                     'county': county_name,
                     'state': 'NC',
                     'year': year_cell.value,
-                    'medicare_enrollment': medicare_enrollment_cell.value,
-                    'resident_deaths': resident_deaths_cell.value if resident_deaths_cell.value else 0,
-                    'hospice_deaths': hospice_deaths_cell.value if hospice_deaths_cell.value else 0,
-                    'hospice_penetration': hospice_penetration_value,  # Converted to decimal
-                    'patients_served': patients_served_cell.value if patients_served_cell.value else 0,
-                    'days_per_patient': days_per_patient_cell.value if days_per_patient_cell.value else 0,
-                    'patient_days': patient_days_cell.value if patient_days_cell.value else 0,
-                    'avg_daily_census': avg_daily_census_cell.value if avg_daily_census_cell.value else 0,
-                    'gip_days_percent': gip_days_percent_value,  # Converted to decimal
-                    'avg_gip_census': avg_gip_census_cell.value if avg_gip_census_cell.value else 0,
-                    'gip_patients': gip_patients_cell.value if gip_patients_cell.value else 0,
-                    'payments_per_patient': payments_per_patient_cell.value if payments_per_patient_cell.value else 0
+                    # Whole numbers (0 decimals)
+                    'medicare_enrollment': int(round(medicare_enrollment_cell.value)) if medicare_enrollment_cell.value else 0,
+                    'resident_deaths': round(resident_deaths_cell.value, 1) if resident_deaths_cell.value else 0,  # 1 decimal for death rates
+                    'hospice_deaths': int(round(hospice_deaths_cell.value)) if hospice_deaths_cell.value else 0,
+                    'patients_served': int(round(patients_served_cell.value)) if patients_served_cell.value else 0,
+                    'patient_days': int(round(patient_days_cell.value)) if patient_days_cell.value else 0,
+                    'gip_patients': int(round(gip_patients_cell.value)) if gip_patients_cell.value else 0,
+                    # Percentages (4 decimals)
+                    'hospice_penetration': round(hospice_penetration_value, 4),  # Converted to decimal
+                    'gip_days_percent': round(gip_days_percent_value, 4),  # Converted to decimal
+                    # 2 decimal places
+                    'days_per_patient': round(days_per_patient_cell.value, 2) if days_per_patient_cell.value else 0,
+                    'avg_daily_census': round(avg_daily_census_cell.value, 2) if avg_daily_census_cell.value else 0,
+                    'payments_per_patient': round(payments_per_patient_cell.value, 2) if payments_per_patient_cell.value else 0,
+                    # 1 decimal place
+                    'avg_gip_census': round(avg_gip_census_cell.value, 1) if avg_gip_census_cell.value else 0
                 }
                 extracted_data.append(row_data)
                 debug_logger.log_row_extraction(row, year_cell.value, medicare_enrollment_cell.value,
