@@ -95,13 +95,12 @@ def rebuild_counties_sheet_from_raw(workbook):
             counties_sheet[f'C{current_counties_row}'] = data['state']  # State
             counties_sheet[f'D{current_counties_row}'] = data['county']  # County
             
-            # Key field - create CONCAT formula
-            counties_sheet[f'E{current_counties_row}'] = f'=CONCAT(D{current_counties_row},B{current_counties_row})'
+            # Key field - FIXED: Use direct concatenation instead of CONCAT function
+            # Format: CountyYear (e.g., "Caswell2010")
+            key_value = f"{data['county']}{data['year']}"
+            counties_sheet[f'E{current_counties_row}'] = key_value
             
-            # Copy data from Raw sheet using VLOOKUP-style references
-            raw_key = f'=CONCAT(A{data["raw_row"]},"-",B{data["raw_row"]},"-",C{data["raw_row"]})'
-            
-            # Map the data fields from Raw sheet
+            # Copy data from Raw sheet using direct cell references
             # Medicare Beneficiaries (Raw column E)
             counties_sheet[f'H{current_counties_row}'] = f'=Raw!E{data["raw_row"]}'
             
