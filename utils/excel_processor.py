@@ -1,5 +1,7 @@
 import openpyxl
 from openpyxl import load_workbook
+from openpyxl.styles import PatternFill, Alignment, Font, Border, Side
+from openpyxl.styles.numbers import FORMAT_NUMBER_00, FORMAT_PERCENTAGE_00
 import io
 import tempfile
 import os
@@ -51,6 +53,8 @@ def process_county_files(main_workbook_file, county_files):
         # This ensures all counties (including newly added ones) appear in Counties sheet
         if 'Counties' in main_wb.sheetnames:
             rebuild_counties_sheet_from_raw(main_wb)
+            # Apply formatting after rebuilding
+            apply_counties_sheet_formatting(main_wb['Counties'])
         
         # Save to memory buffer
         output_buffer = io.BytesIO()
@@ -149,11 +153,72 @@ def rebuild_counties_sheet_from_raw(workbook):
             
             current_counties_row += 1
         
+        # Apply consistent formatting to the Counties sheet
+        apply_counties_sheet_formatting(counties_sheet)
+        
         print(f"Successfully rebuilt Counties sheet with {len(counties_data)} rows from Raw sheet")
         
     except Exception as e:
         print(f"Error rebuilding Counties sheet: {e}")
         # Don't fail the entire process if Counties rebuild fails
+        pass
+
+def apply_counties_sheet_formatting(counties_sheet):
+    """
+    Apply consistent formatting to the Counties sheet with alternating row colors,
+    center alignment, and proper number formatting.
+    """
+    try:
+        # Define styles
+        light_blue_fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+        white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+        center_alignment = Alignment(horizontal="center", vertical="center")
+        
+        # Get the actual data range (starting from row 2 to skip headers)
+        max_row = counties_sheet.max_row
+        if max_row < 2:
+            return  # No data to format
+        
+        # Apply formatting to all data rows
+        for row_num in range(2, max_row + 1):
+            # Determine fill color based on even/odd row
+            if row_num % 2 == 0:
+                fill_color = light_blue_fill
+            else:
+                fill_color = white_fill
+            
+            # Apply formatting to all columns A through AI (columns 1-35)
+            for col_num in range(1, 36):  # A to AI is columns 1-35
+                cell = counties_sheet.cell(row=row_num, column=col_num)
+                
+                # Apply fill color
+                cell.fill = fill_color
+                
+                # Apply center alignment
+                cell.alignment = center_alignment
+                
+                # Apply specific number formatting
+                if col_num == 26:  # Column Z (Hospice Penetration)
+                    cell.number_format = '0.00'
+                elif col_num == 31:  # Column AE (% GIP Days)
+                    cell.number_format = '0.00%'
+                elif col_num in [8, 9, 10, 11]:  # Columns H-K (whole numbers)
+                    cell.number_format = '#,##0'
+                elif col_num in [28, 29, 30, 32, 33, 34, 35]:  # Columns AB-AH (various decimals)
+                    if col_num == 30:  # Column AD (Days per Patient)
+                        cell.number_format = '0.00'
+                    elif col_num == 32:  # Column AF (Average GIP Census)
+                        cell.number_format = '0.0'
+                    elif col_num == 35:  # Column AH (Payments per Patient)
+                        cell.number_format = '"$"#,##0'
+                    else:
+                        cell.number_format = '#,##0'
+        
+        print(f"Applied formatting to {max_row - 1} rows in Counties sheet")
+        
+    except Exception as e:
+        print(f"Error applying Counties sheet formatting: {e}")
+        # Don't fail the entire process if formatting fails
         pass
 
 def extract_county_data(county_file):
