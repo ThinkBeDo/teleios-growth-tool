@@ -49,6 +49,9 @@ def process_county_files(main_workbook_file, county_files):
                 # Add data to Raw sheet
                 next_row = add_county_data_to_raw(raw_sheet, county_data, next_row)
         
+        # CRITICAL FIX: Standardize KEY columns to ensure XLOOKUP works
+        standardize_key_columns(main_wb)
+        
         # CRITICAL FIX: APPEND new counties to Counties sheet (preserves existing data)
         # This ensures new counties are added WITHOUT deleting existing county data
         if 'Counties' in main_wb.sheetnames:
@@ -238,6 +241,72 @@ def rebuild_counties_sheet_from_raw(workbook):
     except Exception as e:
         print(f"Error rebuilding Counties sheet: {e}")
         # Don't fail the entire process if Counties rebuild fails
+        pass
+
+def standardize_key_columns(workbook):
+    """
+    Standardize KEY columns in both Raw and Counties sheets to use CountyYear format.
+    This ensures XLOOKUP formulas can find matches between sheets.
+    
+    Args:
+        workbook: The workbook containing Raw and Counties sheets
+    """
+    try:
+        # Check if sheets exist
+        if 'Raw' not in workbook.sheetnames or 'Counties' not in workbook.sheetnames:
+            print("Raw or Counties sheet not found, skipping key standardization")
+            return
+        
+        raw_sheet = workbook['Raw']
+        counties_sheet = workbook['Counties']
+        
+        # Fix Raw sheet KEY column (D) - CountyYear format
+        print("Standardizing Raw sheet KEY column...")
+        raw_rows_fixed = 0
+        row = 2  # Start from row 2 (skip header)
+        
+        while raw_sheet[f'A{row}'].value is not None:
+            county = raw_sheet[f'A{row}'].value
+            year = raw_sheet[f'C{row}'].value
+            
+            if county and year:
+                # Set KEY to CountyYear format (e.g., "Caswell2010")
+                raw_sheet[f'D{row}'] = f'=CONCAT(A{row},C{row})'
+                raw_rows_fixed += 1
+                
+                # Also add calculated field formulas if missing
+                # Column F: Deaths per 1,000
+                if raw_sheet[f'F{row}'].value is None:
+                    raw_sheet[f'F{row}'] = f'=IF(E{row}=0,0,(G{row}/E{row})*1000)'
+                
+                # Column H: Death Service Ratio
+                if raw_sheet[f'H{row}'].value is None:
+                    raw_sheet[f'H{row}'] = f'=IF(G{row}=0,0,I{row}/G{row})'
+            
+            row += 1
+        
+        print(f"  Fixed {raw_rows_fixed} KEY values in Raw sheet")
+        
+        # Fix Counties sheet KEY column (E) - CountyYear format
+        print("Standardizing Counties sheet KEY column...")
+        counties_rows_fixed = 0
+        
+        for row in range(2, counties_sheet.max_row + 1):
+            county = counties_sheet[f'D{row}'].value
+            year = counties_sheet[f'A{row}'].value
+            
+            if county and year:
+                # Set KEY to CountyYear format (e.g., "Caswell2010")
+                key_value = f"{county}{year}"
+                counties_sheet[f'E{row}'] = key_value
+                counties_rows_fixed += 1
+        
+        print(f"  Fixed {counties_rows_fixed} KEY values in Counties sheet")
+        print(f"Successfully standardized KEY columns in both sheets")
+        
+    except Exception as e:
+        print(f"Error standardizing KEY columns: {e}")
+        # Don't fail the entire process
         pass
 
 def restore_xlookup_formulas(counties_sheet, raw_sheet_max_row=76):
@@ -562,25 +631,23 @@ def add_county_data_to_raw(raw_sheet, county_data, start_row):
         raw_sheet[f'B{current_row}'] = data['state']
         raw_sheet[f'C{current_row}'] = data['year']
         
-        # Column D: Key field - copy formula from previous row if it exists
-        if current_row > 2:  # If not the first data row
-            prev_formula = raw_sheet[f'D{current_row-1}'].value
-            if prev_formula and isinstance(prev_formula, str) and prev_formula.startswith('='):
-                # Update row reference in formula
-                updated_formula = prev_formula.replace(str(current_row-1), str(current_row))
-                raw_sheet[f'D{current_row}'] = updated_formula
-            else:
-                # Create new CONCAT formula
-                raw_sheet[f'D{current_row}'] = f'=CONCAT(A{current_row},"-",B{current_row},"-",C{current_row})'
-        else:
-            # First data row, create CONCAT formula
-            raw_sheet[f'D{current_row}'] = f'=CONCAT(A{current_row},"-",B{current_row},"-",C{current_row})'
+        # Column D: Key field - CountyYear format (e.g., "Caswell2010")
+        # This must match the format used in Counties sheet column E
+        raw_sheet[f'D{current_row}'] = f'=CONCAT(A{current_row},C{current_row})'
         
         # Field mapping - WITH INTENTIONAL GAPS for calculated fields
         raw_sheet[f'E{current_row}'] = data['medicare_enrollment']  # Medicare Beneficiaries
-        # Column F is CALCULATED (Deaths per 1,000) - DO NOT OVERWRITE
+        
+        # Column F: Deaths per 1,000 (CALCULATED)
+        # Formula: (Medicare Deaths / Medicare Beneficiaries) * 1000
+        raw_sheet[f'F{current_row}'] = f'=IF(E{current_row}=0,0,(G{current_row}/E{current_row})*1000)'
+        
         raw_sheet[f'G{current_row}'] = data['resident_deaths']      # Medicare Deaths
-        # Column H is CALCULATED (Death Service Ratio) - DO NOT OVERWRITE
+        
+        # Column H: Death Service Ratio (CALCULATED)
+        # Formula: Hospice Deaths / Medicare Deaths
+        raw_sheet[f'H{current_row}'] = f'=IF(G{current_row}=0,0,I{current_row}/G{current_row})'
+        
         raw_sheet[f'I{current_row}'] = data['hospice_deaths']       # Hospice Deaths
         raw_sheet[f'J{current_row}'] = data['hospice_penetration']  # Hospice Penetration
         raw_sheet[f'K{current_row}'] = data['patients_served']      # Hospice Unduplicated Beneficiaries
