@@ -159,7 +159,8 @@ def rebuild_counties_sheet_from_raw(workbook):
 def extract_county_data(county_file):
     """
     Extract data from County Trend sheet, rows 10+ (skipping header at row 9)
-    Extracts columns A,B,D,F,G,H,I,J,K,L,M,N,O (12 total columns)
+    Extracts columns B,C,E,G,H,I,J,K,L,M,N,O,P (12 total columns)
+    Note: Column A is empty in Burke files - data starts at column B
     Stops at first empty row to extract only the PRIMARY table (first continuous data section)
     """
     debug_logger.reset_trace()
@@ -217,20 +218,20 @@ def extract_county_data(county_file):
         for row in range(10, trend_sheet.max_row + 1):
             rows_checked += 1
             
-            # Extract all required columns (FIXED: shifted left by 1 column)
-            year_cell = trend_sheet[f'A{row}']                    # Was B, now A
-            medicare_enrollment_cell = trend_sheet[f'B{row}']     # Was C, now B
-            resident_deaths_cell = trend_sheet[f'D{row}']         # Was E, now D (skip C)
-            hospice_deaths_cell = trend_sheet[f'F{row}']          # Was G, now F (skip E)
-            hospice_penetration_cell = trend_sheet[f'G{row}']     # Was H, now G
-            patients_served_cell = trend_sheet[f'H{row}']         # Was I, now H
-            days_per_patient_cell = trend_sheet[f'I{row}']        # Was J, now I (ALOS)
-            patient_days_cell = trend_sheet[f'J{row}']            # Was K, now J
-            avg_daily_census_cell = trend_sheet[f'K{row}']        # Was L, now K
-            gip_days_percent_cell = trend_sheet[f'L{row}']        # Was M, now L
-            avg_gip_census_cell = trend_sheet[f'M{row}']          # Was N, now M
-            gip_patients_cell = trend_sheet[f'N{row}']            # Was O, now N
-            payments_per_patient_cell = trend_sheet[f'O{row}']    # Was P, now O
+            # Extract all required columns (CORRECT MAPPING - Column A is empty in Burke files)
+            year_cell = trend_sheet[f'B{row}']                    # Year data starts at B
+            medicare_enrollment_cell = trend_sheet[f'C{row}']     # Medicare Enrollment
+            resident_deaths_cell = trend_sheet[f'E{row}']         # Resident Deaths (skip D)
+            hospice_deaths_cell = trend_sheet[f'G{row}']          # Hospice Deaths (skip F)
+            hospice_penetration_cell = trend_sheet[f'H{row}']     # Hospice Penetration
+            patients_served_cell = trend_sheet[f'I{row}']         # Patients Served
+            days_per_patient_cell = trend_sheet[f'J{row}']        # Days per Patient (ALOS)
+            patient_days_cell = trend_sheet[f'K{row}']            # Patient Days
+            avg_daily_census_cell = trend_sheet[f'L{row}']        # Average Daily Census
+            gip_days_percent_cell = trend_sheet[f'M{row}']        # % GIP Days
+            avg_gip_census_cell = trend_sheet[f'N{row}']          # Average GIP Census
+            gip_patients_cell = trend_sheet[f'O{row}']            # GIP Patients
+            payments_per_patient_cell = trend_sheet[f'P{row}']    # Payments per Patient
             
             # Log the raw values for debugging
             debug_logger.logger.debug(f"Row {row} raw values - Year: {year_cell.value}, Medicare: {medicare_enrollment_cell.value}")
