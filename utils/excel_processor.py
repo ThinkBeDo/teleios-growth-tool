@@ -271,7 +271,9 @@ def standardize_key_columns(workbook):
             
             if county and year:
                 # Set KEY to CountyYear format (e.g., "Caswell2010")
-                raw_sheet[f'D{row}'] = f'=CONCAT(A{row},C{row})'
+                # Using direct string value instead of CONCAT formula for reliability
+                key_value = f"{county}{year}"
+                raw_sheet[f'D{row}'] = key_value
                 raw_rows_fixed += 1
                 
                 # Also add calculated field formulas if missing
@@ -633,7 +635,9 @@ def add_county_data_to_raw(raw_sheet, county_data, start_row):
         
         # Column D: Key field - CountyYear format (e.g., "Caswell2010")
         # This must match the format used in Counties sheet column E
-        raw_sheet[f'D{current_row}'] = f'=CONCAT(A{current_row},C{current_row})'
+        # Using direct string value instead of CONCAT formula for reliability
+        key_value = f"{data['county']}{data['year']}"
+        raw_sheet[f'D{current_row}'] = key_value
         
         # Field mapping - WITH INTENTIONAL GAPS for calculated fields
         raw_sheet[f'E{current_row}'] = data['medicare_enrollment']  # Medicare Beneficiaries
