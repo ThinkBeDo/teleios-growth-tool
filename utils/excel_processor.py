@@ -57,11 +57,11 @@ def process_county_files(main_workbook_file, county_files):
         if 'Counties' in main_wb.sheetnames:
             new_rows_added = append_new_counties_to_sheet(main_wb)
             
-            # Get the max row from Raw sheet for XLOOKUP range
+            # Get the max row from Raw sheet for lookup range
             raw_max_row = raw_sheet.max_row
             
-            # Restore XLOOKUP formulas for ALL rows (both existing and new)
-            restore_xlookup_formulas(main_wb['Counties'], raw_max_row)
+            # Restore INDEX/MATCH formulas for ALL rows (both existing and new)
+            restore_lookup_formulas(main_wb['Counties'], raw_max_row)
             
             # Apply formatting to all rows
             apply_counties_sheet_formatting(main_wb['Counties'])
@@ -311,19 +311,20 @@ def standardize_key_columns(workbook):
         # Don't fail the entire process
         pass
 
-def restore_xlookup_formulas(counties_sheet, raw_sheet_max_row=76):
+def restore_lookup_formulas(counties_sheet, raw_sheet_max_row=76):
     """
-    Restore XLOOKUP formulas to all data rows in the Counties sheet.
+    Restore INDEX/MATCH lookup formulas to all data rows in the Counties sheet.
     These formulas look up data from the Raw sheet based on the Key column (E).
+    Uses INDEX/MATCH instead of XLOOKUP for universal Excel compatibility.
     
     Args:
         counties_sheet: The Counties worksheet object
         raw_sheet_max_row: Maximum row in Raw sheet (default 76)
     """
     try:
-        # Define the XLOOKUP formula mappings
-        # Format: counties_column -> (raw_lookup_column, raw_return_column)
-        xlookup_mappings = {
+        # Define the lookup formula mappings
+        # Format: counties_column -> raw_return_column
+        lookup_mappings = {
             'H': 'E',   # Medicare Beneficiaries (Raw column E)
             'I': 'G',   # Medicare Deaths (Raw column G)
             'J': 'K',   # Hospice Unduplicated Beneficiaries (Raw column K)
@@ -341,27 +342,27 @@ def restore_xlookup_formulas(counties_sheet, raw_sheet_max_row=76):
         # Get the actual data range
         max_row = counties_sheet.max_row
         if max_row < 2:
-            print("No data rows to update with XLOOKUP formulas")
+            print("No data rows to update with lookup formulas")
             return
         
-        # Apply XLOOKUP formulas to all data rows (starting from row 2)
+        # Apply INDEX/MATCH formulas to all data rows (starting from row 2)
         formulas_applied = 0
         for row in range(2, max_row + 1):
             # Check if this row has a key value
             key_cell = counties_sheet[f'E{row}']
             if key_cell.value:
-                # Apply XLOOKUP formulas for each mapped column
-                for counties_col, raw_col in xlookup_mappings.items():
-                    # Build the XLOOKUP formula
-                    # =XLOOKUP(E{row},Raw!$D$2:$D${raw_max},Raw!${raw_col}$2:${raw_col}${raw_max})
-                    formula = f'=XLOOKUP(E{row},Raw!$D$2:$D${raw_sheet_max_row},Raw!${raw_col}$2:${raw_col}${raw_sheet_max_row})'
+                # Apply INDEX/MATCH formulas for each mapped column
+                for counties_col, raw_col in lookup_mappings.items():
+                    # Build the INDEX/MATCH formula for universal Excel compatibility
+                    # =INDEX(Raw!${raw_col}$2:${raw_col}${raw_max},MATCH(E{row},Raw!$D$2:$D${raw_max},0))
+                    formula = f'=INDEX(Raw!${raw_col}$2:${raw_col}${raw_sheet_max_row},MATCH(E{row},Raw!$D$2:$D${raw_sheet_max_row},0))'
                     counties_sheet[f'{counties_col}{row}'] = formula
                 formulas_applied += 1
         
-        print(f"Successfully restored XLOOKUP formulas to {formulas_applied} rows in Counties sheet")
+        print(f"Successfully restored INDEX/MATCH formulas to {formulas_applied} rows in Counties sheet")
         
     except Exception as e:
-        print(f"Error restoring XLOOKUP formulas: {e}")
+        print(f"Error restoring lookup formulas: {e}")
         # Don't fail the entire process if formula restoration fails
         pass
 
