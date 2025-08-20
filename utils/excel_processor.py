@@ -53,9 +53,15 @@ def process_county_files(main_workbook_file, county_files):
         # This ensures new counties are added WITHOUT deleting existing county data
         if 'Counties' in main_wb.sheetnames:
             new_rows_added = append_new_counties_to_sheet(main_wb)
-            # Apply formatting only to newly added rows
-            if new_rows_added > 0:
-                apply_counties_sheet_formatting(main_wb['Counties'])
+            
+            # Get the max row from Raw sheet for XLOOKUP range
+            raw_max_row = raw_sheet.max_row
+            
+            # Restore XLOOKUP formulas for ALL rows (both existing and new)
+            restore_xlookup_formulas(main_wb['Counties'], raw_max_row)
+            
+            # Apply formatting to all rows
+            apply_counties_sheet_formatting(main_wb['Counties'])
         
         # Save to memory buffer
         output_buffer = io.BytesIO()
@@ -117,42 +123,8 @@ def append_new_counties_to_sheet(workbook):
                 key_value = f"{county}{year}"
                 counties_sheet[f'E{next_counties_row}'] = key_value
                 
-                # Copy data from Raw sheet using direct cell references
-                # Medicare Beneficiaries (Raw column E)
-                counties_sheet[f'H{next_counties_row}'] = f'=Raw!E{row}'
-                
-                # Medicare Deaths (Raw column G) 
-                counties_sheet[f'I{next_counties_row}'] = f'=Raw!G{row}'
-                
-                # Hospice Unduplicated Beneficiaries (Raw column K)
-                counties_sheet[f'J{next_counties_row}'] = f'=Raw!K{row}'
-                
-                # Hospice Deaths (Raw column I)
-                counties_sheet[f'K{next_counties_row}'] = f'=Raw!I{row}'
-                
-                # Hospice Penetration (Raw column J) → Counties column Z
-                counties_sheet[f'Z{next_counties_row}'] = f'=Raw!J{row}'
-                
-                # Average Daily Census (Raw column N) → Counties column AB
-                counties_sheet[f'AB{next_counties_row}'] = f'=Raw!N{row}'
-                
-                # Patient Days (Raw column M) → Counties column AC
-                counties_sheet[f'AC{next_counties_row}'] = f'=Raw!M{row}'
-                
-                # Days per Patient/ALOS (Raw column L) → Counties column AD
-                counties_sheet[f'AD{next_counties_row}'] = f'=Raw!L{row}'
-                
-                # % GIP Days (Raw column O) → Counties column AE
-                counties_sheet[f'AE{next_counties_row}'] = f'=Raw!O{row}'
-                
-                # Average GIP Census (Raw column P) → Counties column AF
-                counties_sheet[f'AF{next_counties_row}'] = f'=Raw!P{row}'
-                
-                # GIP Patients (Raw column Q) → Counties column AG
-                counties_sheet[f'AG{next_counties_row}'] = f'=Raw!Q{row}'
-                
-                # Payments per Patient (Raw column R) → Counties column AH
-                counties_sheet[f'AH{next_counties_row}'] = f'=Raw!R{row}'
+                # Don't add formulas here - they will be added by restore_xlookup_formulas
+                # This ensures all rows use consistent XLOOKUP formulas
                 
                 next_counties_row += 1
                 new_counties_added += 1
@@ -266,6 +238,60 @@ def rebuild_counties_sheet_from_raw(workbook):
     except Exception as e:
         print(f"Error rebuilding Counties sheet: {e}")
         # Don't fail the entire process if Counties rebuild fails
+        pass
+
+def restore_xlookup_formulas(counties_sheet, raw_sheet_max_row=76):
+    """
+    Restore XLOOKUP formulas to all data rows in the Counties sheet.
+    These formulas look up data from the Raw sheet based on the Key column (E).
+    
+    Args:
+        counties_sheet: The Counties worksheet object
+        raw_sheet_max_row: Maximum row in Raw sheet (default 76)
+    """
+    try:
+        # Define the XLOOKUP formula mappings
+        # Format: counties_column -> (raw_lookup_column, raw_return_column)
+        xlookup_mappings = {
+            'H': 'E',   # Medicare Beneficiaries (Raw column E)
+            'I': 'G',   # Medicare Deaths (Raw column G)
+            'J': 'K',   # Hospice Unduplicated Beneficiaries (Raw column K)
+            'K': 'I',   # Hospice Deaths (Raw column I)
+            'Z': 'J',   # Hospice Penetration (Raw column J)
+            'AB': 'N',  # Average Daily Census (Raw column N)
+            'AC': 'M',  # Patient Days (Raw column M)
+            'AD': 'L',  # Days per Patient/ALOS (Raw column L)
+            'AE': 'O',  # % GIP Days (Raw column O)
+            'AF': 'P',  # Average GIP Census (Raw column P)
+            'AG': 'Q',  # GIP Patients (Raw column Q)
+            'AH': 'R',  # Payments per Patient (Raw column R)
+        }
+        
+        # Get the actual data range
+        max_row = counties_sheet.max_row
+        if max_row < 2:
+            print("No data rows to update with XLOOKUP formulas")
+            return
+        
+        # Apply XLOOKUP formulas to all data rows (starting from row 2)
+        formulas_applied = 0
+        for row in range(2, max_row + 1):
+            # Check if this row has a key value
+            key_cell = counties_sheet[f'E{row}']
+            if key_cell.value:
+                # Apply XLOOKUP formulas for each mapped column
+                for counties_col, raw_col in xlookup_mappings.items():
+                    # Build the XLOOKUP formula
+                    # =XLOOKUP(E{row},Raw!$D$2:$D${raw_max},Raw!${raw_col}$2:${raw_col}${raw_max})
+                    formula = f'=XLOOKUP(E{row},Raw!$D$2:$D${raw_sheet_max_row},Raw!${raw_col}$2:${raw_col}${raw_sheet_max_row})'
+                    counties_sheet[f'{counties_col}{row}'] = formula
+                formulas_applied += 1
+        
+        print(f"Successfully restored XLOOKUP formulas to {formulas_applied} rows in Counties sheet")
+        
+    except Exception as e:
+        print(f"Error restoring XLOOKUP formulas: {e}")
+        # Don't fail the entire process if formula restoration fails
         pass
 
 def apply_counties_sheet_formatting(counties_sheet, start_row=None, end_row=None):
