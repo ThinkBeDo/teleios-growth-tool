@@ -49,12 +49,13 @@ def process_county_files(main_workbook_file, county_files):
                 # Add data to Raw sheet
                 next_row = add_county_data_to_raw(raw_sheet, county_data, next_row)
         
-        # CRITICAL FIX: Rebuild Counties sheet from Raw data
-        # This ensures all counties (including newly added ones) appear in Counties sheet
+        # CRITICAL FIX: APPEND new counties to Counties sheet (preserves existing data)
+        # This ensures new counties are added WITHOUT deleting existing county data
         if 'Counties' in main_wb.sheetnames:
-            rebuild_counties_sheet_from_raw(main_wb)
-            # Apply formatting after rebuilding
-            apply_counties_sheet_formatting(main_wb['Counties'])
+            new_rows_added = append_new_counties_to_sheet(main_wb)
+            # Apply formatting only to newly added rows
+            if new_rows_added > 0:
+                apply_counties_sheet_formatting(main_wb['Counties'])
         
         # Save to memory buffer
         output_buffer = io.BytesIO()
@@ -67,10 +68,114 @@ def process_county_files(main_workbook_file, county_files):
         print(f"Error processing files: {e}")
         return None
 
+def append_new_counties_to_sheet(workbook):
+    """
+    APPEND new counties from Raw sheet to Counties sheet WITHOUT deleting existing data.
+    This preserves all existing county data and only adds new counties at the end.
+    """
+    try:
+        raw_sheet = workbook['Raw']
+        counties_sheet = workbook['Counties']
+        
+        # Get existing counties to avoid duplicates
+        existing_counties = set()
+        for row in range(2, counties_sheet.max_row + 1):
+            county = counties_sheet[f'D{row}'].value
+            year = counties_sheet[f'A{row}'].value
+            if county and year:
+                existing_counties.add((county, year))
+        
+        # Find the next empty row in Counties sheet (where to append)
+        next_counties_row = counties_sheet.max_row + 1
+        if counties_sheet.max_row == 1:  # Only headers exist
+            next_counties_row = 2
+        else:
+            # Find actual last row with data
+            for row in range(counties_sheet.max_row, 1, -1):
+                if counties_sheet[f'A{row}'].value is not None:
+                    next_counties_row = row + 1
+                    break
+        
+        # Get new counties from Raw sheet
+        new_counties_added = 0
+        row = 2  # Start from row 2 in Raw sheet (skip header)
+        
+        while raw_sheet[f'A{row}'].value is not None:
+            county = raw_sheet[f'A{row}'].value
+            state = raw_sheet[f'B{row}'].value
+            year = raw_sheet[f'C{row}'].value
+            
+            # Only add if this county-year combination doesn't already exist
+            if county and state and year and (county, year) not in existing_counties:
+                # Map data from Raw sheet to Counties sheet structure
+                counties_sheet[f'A{next_counties_row}'] = year  # Year
+                counties_sheet[f'B{next_counties_row}'] = year  # Year (duplicate)
+                counties_sheet[f'C{next_counties_row}'] = state  # State
+                counties_sheet[f'D{next_counties_row}'] = county  # County
+                
+                # Key field
+                key_value = f"{county}{year}"
+                counties_sheet[f'E{next_counties_row}'] = key_value
+                
+                # Copy data from Raw sheet using direct cell references
+                # Medicare Beneficiaries (Raw column E)
+                counties_sheet[f'H{next_counties_row}'] = f'=Raw!E{row}'
+                
+                # Medicare Deaths (Raw column G) 
+                counties_sheet[f'I{next_counties_row}'] = f'=Raw!G{row}'
+                
+                # Hospice Unduplicated Beneficiaries (Raw column K)
+                counties_sheet[f'J{next_counties_row}'] = f'=Raw!K{row}'
+                
+                # Hospice Deaths (Raw column I)
+                counties_sheet[f'K{next_counties_row}'] = f'=Raw!I{row}'
+                
+                # Hospice Penetration (Raw column J) → Counties column Z
+                counties_sheet[f'Z{next_counties_row}'] = f'=Raw!J{row}'
+                
+                # Average Daily Census (Raw column N) → Counties column AB
+                counties_sheet[f'AB{next_counties_row}'] = f'=Raw!N{row}'
+                
+                # Patient Days (Raw column M) → Counties column AC
+                counties_sheet[f'AC{next_counties_row}'] = f'=Raw!M{row}'
+                
+                # Days per Patient/ALOS (Raw column L) → Counties column AD
+                counties_sheet[f'AD{next_counties_row}'] = f'=Raw!L{row}'
+                
+                # % GIP Days (Raw column O) → Counties column AE
+                counties_sheet[f'AE{next_counties_row}'] = f'=Raw!O{row}'
+                
+                # Average GIP Census (Raw column P) → Counties column AF
+                counties_sheet[f'AF{next_counties_row}'] = f'=Raw!P{row}'
+                
+                # GIP Patients (Raw column Q) → Counties column AG
+                counties_sheet[f'AG{next_counties_row}'] = f'=Raw!Q{row}'
+                
+                # Payments per Patient (Raw column R) → Counties column AH
+                counties_sheet[f'AH{next_counties_row}'] = f'=Raw!R{row}'
+                
+                next_counties_row += 1
+                new_counties_added += 1
+                existing_counties.add((county, year))
+            
+            row += 1
+        
+        if new_counties_added > 0:
+            print(f"Successfully appended {new_counties_added} new county rows to Counties sheet")
+        else:
+            print("No new counties to add (all already exist in Counties sheet)")
+        
+        return new_counties_added
+        
+    except Exception as e:
+        print(f"Error appending to Counties sheet: {e}")
+        return 0
+
 def rebuild_counties_sheet_from_raw(workbook):
     """
-    Rebuild the Counties sheet from Raw sheet data to include all counties.
-    This fixes the issue where new counties don't appear in the Counties sheet.
+    DEPRECATED - Use append_new_counties_to_sheet() instead.
+    This function rebuilds from scratch and loses existing data.
+    Kept for backwards compatibility but should not be used.
     """
     try:
         raw_sheet = workbook['Raw']
@@ -163,10 +268,15 @@ def rebuild_counties_sheet_from_raw(workbook):
         # Don't fail the entire process if Counties rebuild fails
         pass
 
-def apply_counties_sheet_formatting(counties_sheet):
+def apply_counties_sheet_formatting(counties_sheet, start_row=None, end_row=None):
     """
     Apply consistent formatting to the Counties sheet with alternating row colors,
     center alignment, and proper number formatting.
+    
+    Args:
+        counties_sheet: The Counties worksheet object
+        start_row: Optional - first row to format (default: 2)
+        end_row: Optional - last row to format (default: max_row)
     """
     try:
         # Define styles
@@ -174,13 +284,17 @@ def apply_counties_sheet_formatting(counties_sheet):
         white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
         center_alignment = Alignment(horizontal="center", vertical="center")
         
-        # Get the actual data range (starting from row 2 to skip headers)
-        max_row = counties_sheet.max_row
-        if max_row < 2:
+        # Determine the range to format
+        if start_row is None:
+            start_row = 2  # Skip header row
+        if end_row is None:
+            end_row = counties_sheet.max_row
+        
+        if end_row < start_row:
             return  # No data to format
         
-        # Apply formatting to all data rows
-        for row_num in range(2, max_row + 1):
+        # Apply formatting to specified data rows
+        for row_num in range(start_row, end_row + 1):
             # Determine fill color based on even/odd row
             if row_num % 2 == 0:
                 fill_color = light_blue_fill
@@ -214,7 +328,7 @@ def apply_counties_sheet_formatting(counties_sheet):
                     else:
                         cell.number_format = '#,##0'
         
-        print(f"Applied formatting to {max_row - 1} rows in Counties sheet")
+        print(f"Applied formatting to rows {start_row}-{end_row} in Counties sheet")
         
     except Exception as e:
         print(f"Error applying Counties sheet formatting: {e}")
