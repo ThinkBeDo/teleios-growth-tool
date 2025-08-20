@@ -216,20 +216,9 @@ def rebuild_counties_sheet_from_raw(workbook):
             # Patient Days (Raw column M) → Counties column AC
             counties_sheet[f'AC{current_counties_row}'] = f'=Raw!M{data["raw_row"]}'
             
-            # Days per Patient/ALOS (Raw column L) → Counties column AD
-            counties_sheet[f'AD{current_counties_row}'] = f'=Raw!L{data["raw_row"]}'
-            
-            # % GIP Days (Raw column O) → Counties column AE
-            counties_sheet[f'AE{current_counties_row}'] = f'=Raw!O{data["raw_row"]}'
-            
-            # Average GIP Census (Raw column P) → Counties column AF
-            counties_sheet[f'AF{current_counties_row}'] = f'=Raw!P{data["raw_row"]}'
-            
-            # GIP Patients (Raw column Q) → Counties column AG
-            counties_sheet[f'AG{current_counties_row}'] = f'=Raw!Q{data["raw_row"]}'
-            
-            # Payments per Patient (Raw column R) → Counties column AH
-            counties_sheet[f'AH{current_counties_row}'] = f'=Raw!R{data["raw_row"]}'
+            # Deaths per 1,000 (Raw column F) → Counties column AD
+            # Note: This is now handled by restore_lookup_formulas with INDEX/MATCH
+            # Keeping this comment for documentation purposes
             
             current_counties_row += 1
         
@@ -332,11 +321,7 @@ def restore_lookup_formulas(counties_sheet, raw_sheet_max_row=76):
             'Z': 'J',   # Hospice Penetration (Raw column J)
             'AB': 'N',  # Average Daily Census (Raw column N)
             'AC': 'M',  # Patient Days (Raw column M)
-            'AD': 'L',  # Days per Patient/ALOS (Raw column L)
-            'AE': 'O',  # % GIP Days (Raw column O)
-            'AF': 'P',  # Average GIP Census (Raw column P)
-            'AG': 'Q',  # GIP Patients (Raw column Q)
-            'AH': 'R',  # Payments per Patient (Raw column R)
+            'AD': 'F',  # Deaths per 1,000 (Raw column F) - FIXED: was L, should be F
         }
         
         # Get the actual data range
@@ -399,8 +384,8 @@ def apply_counties_sheet_formatting(counties_sheet, start_row=None, end_row=None
             else:
                 fill_color = white_fill
             
-            # Apply formatting to all columns A through AI (columns 1-35)
-            for col_num in range(1, 36):  # A to AI is columns 1-35
+            # Apply formatting to all columns A through AD (columns 1-30)
+            for col_num in range(1, 31):  # A to AD is columns 1-30
                 cell = counties_sheet.cell(row=row_num, column=col_num)
                 
                 # Apply fill color
@@ -412,17 +397,11 @@ def apply_counties_sheet_formatting(counties_sheet, start_row=None, end_row=None
                 # Apply specific number formatting
                 if col_num == 26:  # Column Z (Hospice Penetration)
                     cell.number_format = '0.00'
-                elif col_num == 31:  # Column AE (% GIP Days)
-                    cell.number_format = '0.00%'
                 elif col_num in [8, 9, 10, 11]:  # Columns H-K (whole numbers)
                     cell.number_format = '#,##0'
-                elif col_num in [28, 29, 30, 32, 33, 34, 35]:  # Columns AB-AH (various decimals)
-                    if col_num == 30:  # Column AD (Days per Patient)
-                        cell.number_format = '0.00'
-                    elif col_num == 32:  # Column AF (Average GIP Census)
-                        cell.number_format = '0.0'
-                    elif col_num == 35:  # Column AH (Payments per Patient)
-                        cell.number_format = '"$"#,##0'
+                elif col_num in [28, 29, 30]:  # Columns AB-AD (various decimals)
+                    if col_num == 30:  # Column AD (Deaths per 1,000)
+                        cell.number_format = '0.0'  # One decimal place for death rate
                     else:
                         cell.number_format = '#,##0'
         
